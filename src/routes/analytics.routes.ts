@@ -254,6 +254,7 @@ router.get("/session/:sessionId/summary", async (req, res) => {
       home: "Home",
       about: "Sobre mim",
       projects: "Projetos",
+      tech: "Tecnologias",
       skills: "Competências",
       experience: "Experiência",
       contact: "Contato",
