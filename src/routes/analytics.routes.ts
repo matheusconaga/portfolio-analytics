@@ -287,10 +287,17 @@ router.get("/session/:sessionId/summary", async (req, res) => {
     }
 
     const sections = [...viewedSections];
-    
+
     // --------------------------------------------------
     // Interações
     // --------------------------------------------------
+
+    const projectNames: Record<string, string> = {
+      "docflow-ai": "DocFlow AI",
+      "gestao-patrimonial": "Gestão Patrimonial",
+      println: "PrintLn",
+      portfolio: "Portfólio",
+    };
 
     const interactionNames: Record<string, string> = {
       project_view: "Visualizou um projeto",
@@ -310,19 +317,46 @@ router.get("/session/:sessionId/summary", async (req, res) => {
           event.type !== "page_view" &&
           event.type !== "section_view",
       )
-      .map((event) => ({
-        type: event.type,
+      .map((event) => {
+        const projectName = event.projectSlug
+          ? projectNames[event.projectSlug] || event.projectSlug
+          : null;
 
-        label:
+        let label =
           interactionNames[event.type] ||
-          event.type,
+          event.type;
 
-        projectSlug:
-          event.projectSlug || null,
+        if (
+          event.type === "project_view" &&
+          projectName
+        ) {
+          label = `Visualizou o projeto ${projectName}`;
+        }
 
-        metadata:
-          event.metadata || null,
-      }));
+        if (
+          event.type === "github_click" &&
+          projectName
+        ) {
+          label = `Clicou no GitHub — ${projectName}`;
+        }
+
+        if (
+          event.type === "demo_click" &&
+          projectName
+        ) {
+          label = `Abriu a demonstração — ${projectName}`;
+        }
+
+        return {
+          type: event.type,
+          label,
+          projectSlug:
+            event.projectSlug || null,
+          projectName,
+          metadata:
+            event.metadata || null,
+        };
+      });
 
     // --------------------------------------------------
     // Duração
