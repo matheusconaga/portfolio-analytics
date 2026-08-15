@@ -249,20 +249,54 @@ router.get("/session/:sessionId/summary", async (req, res) => {
     // Páginas / seções visualizadas
     // --------------------------------------------------
 
-    const sections = [
-      ...new Set(
-        session.events
-          .map((event) => event.page)
-          .filter((page): page is string => Boolean(page)),
-      ),
-    ];
+    const sectionNames: Record<string, string> = {
+      "/": "Home",
+      home: "Home",
+      about: "Sobre mim",
+      projects: "Projetos",
+      skills: "Competências",
+      experience: "Experiência",
+      contact: "Contato",
+    };
+
+    const viewedSections = new Set<string>();
+
+    for (const event of session.events) {
+      if (event.page) {
+        viewedSections.add(
+          sectionNames[event.page] || event.page,
+        );
+      }
+
+      if (
+        event.type === "section_view" &&
+        event.metadata &&
+        typeof event.metadata === "object" &&
+        !Array.isArray(event.metadata)
+      ) {
+        const metadata = event.metadata as Record<string, unknown>;
+        const section = metadata.section;
+
+        if (typeof section === "string") {
+          viewedSections.add(
+            sectionNames[section] || section,
+          );
+        }
+      }
+    }
+
+    const sections = [...viewedSections];
 
     // --------------------------------------------------
     // Interações
     // --------------------------------------------------
 
     const interactions = session.events
-      .filter((event) => event.type !== "page_view")
+      .filter(
+        (event) =>
+          event.type !== "page_view" &&
+          event.type !== "section_view",
+      )
       .map((event) => {
         if (event.projectSlug) {
           return {
@@ -276,6 +310,7 @@ router.get("/session/:sessionId/summary", async (req, res) => {
           metadata: event.metadata,
         };
       });
+
 
     // --------------------------------------------------
     // Duração
