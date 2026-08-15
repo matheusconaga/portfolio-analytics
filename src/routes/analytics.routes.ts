@@ -41,6 +41,40 @@ router.post("/session", async (req, res) => {
       },
     });
 
+    // Notifica o n8n sobre a criação de uma nova sessão
+    const n8nWebhookUrl = process.env.N8N_VISIT_WEBHOOK_URL;
+
+    if (n8nWebhookUrl) {
+      try {
+        const response = await fetch(n8nWebhookUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            sessionId: session.id,
+            source: req.headers.referer || "Direct",
+          }),
+        });
+
+        console.log("n8n webhook status:", response.status);
+
+        if (!response.ok) {
+          const responseBody = await response.text();
+
+          console.error(
+            "n8n webhook failed:",
+            response.status,
+            responseBody,
+          );
+        }
+      } catch (error) {
+        console.error("Failed to notify n8n:", error);
+      }
+    } else {
+      console.warn("N8N_VISIT_WEBHOOK_URL is not configured");
+    }
+
     res.status(201).json({
       visitorId: currentVisitorId,
       sessionId: session.id,
