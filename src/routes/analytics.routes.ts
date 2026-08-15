@@ -136,4 +136,191 @@ router.post("/event", async (req, res) => {
   }
 });
 
+router.get("/session/:sessionId/summary", async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+
+    const session = await prisma.session.findUnique({
+      where: {
+        id: sessionId,
+      },
+      include: {
+        visitor: {
+          include: {
+            sessions: {
+              select: {
+                id: true,
+              },
+            },
+          },
+        },
+        events: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        error: "Session not found",
+      });
+    }
+
+    // --------------------------------------------------
+    // Visitante novo ou recorrente
+    // --------------------------------------------------
+
+    const visitorType =
+      session.visitor.sessions.length <= 1
+        ? "new"
+        : "returning";
+
+    // --------------------------------------------------
+    // Origem
+    // --------------------------------------------------
+
+    const referrer = session.referrer;
+
+    let source = "Acesso direto";
+
+    if (referrer) {
+      const normalizedReferrer = referrer.toLowerCase();
+
+      if (normalizedReferrer.includes("linkedin")) {
+        source = "LinkedIn";
+      } else if (normalizedReferrer.includes("github")) {
+        source = "GitHub";
+      } else if (normalizedReferrer.includes("google")) {
+        source = "Google";
+      } else if (
+        normalizedReferrer.includes("portifoliomatheuslula")
+      ) {
+        source = "Acesso direto";
+      } else {
+        try {
+          source = new URL(referrer).hostname.replace("www.", "");
+        } catch {
+          source = referrer;
+        }
+      }
+    }
+
+    // --------------------------------------------------
+    // Dispositivo
+    // --------------------------------------------------
+
+    const userAgent = session.userAgent?.toLowerCase() || "";
+
+    let device = "Desktop";
+
+    if (/ipad|tablet/.test(userAgent)) {
+      device = "Tablet";
+    } else if (/mobile|android|iphone/.test(userAgent)) {
+      device = "Mobile";
+    }
+
+    // --------------------------------------------------
+    // Navegador
+    // --------------------------------------------------
+
+    let browser = "Outro";
+
+    if (userAgent.includes("edg/")) {
+      browser = "Edge";
+    } else if (userAgent.includes("opr/")) {
+      browser = "Opera";
+    } else if (
+      userAgent.includes("chrome/") &&
+      !userAgent.includes("edg/")
+    ) {
+      browser = "Chrome";
+    } else if (
+      userAgent.includes("safari/") &&
+      !userAgent.includes("chrome/")
+    ) {
+      browser = "Safari";
+    } else if (userAgent.includes("firefox/")) {
+      browser = "Firefox";
+    }
+
+    // --------------------------------------------------
+    // Páginas / seções visualizadas
+    // --------------------------------------------------
+
+    const sections = [
+      ...new Set(
+        session.events
+          .map((event) => event.page)
+          .filter((page): page is string => Boolean(page)),
+      ),
+    ];
+
+    // --------------------------------------------------
+    // Interações
+    // --------------------------------------------------
+
+    const interactions = session.events
+      .filter((event) => event.type !== "page_view")
+      .map((event) => {
+        if (event.projectSlug) {
+          return {
+            type: event.type,
+            projectSlug: event.projectSlug,
+          };
+        }
+
+        return {
+          type: event.type,
+          metadata: event.metadata,
+        };
+      });
+
+    // --------------------------------------------------
+    // Duração
+    // --------------------------------------------------
+
+    const durationSeconds = Math.max(
+      0,
+      Math.round(
+        (
+          session.lastActivityAt.getTime() -
+          session.startedAt.getTime()
+        ) / 1000,
+      ),
+    );
+
+    // Consideramos a sessão ativa se houve atividade
+    // nos últimos 90 segundos.
+    const inactivityThreshold = 90 * 1000;
+
+    const active =
+      Date.now() - session.lastActivityAt.getTime() <
+      inactivityThreshold;
+
+    // --------------------------------------------------
+
+    res.json({
+      sessionId: session.id,
+      visitorType,
+      source,
+      device,
+      browser,
+      sections,
+      interactions,
+      durationSeconds,
+      active,
+      startedAt: session.startedAt,
+      lastActivityAt: session.lastActivityAt,
+    });
+  } catch (error) {
+    console.error("Failed to generate session summary:", error);
+
+    res.status(500).json({
+      error: "Failed to generate session summary",
+    });
+  }
+});
+
 export default router;
