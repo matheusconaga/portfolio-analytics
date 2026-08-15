@@ -294,7 +294,7 @@ router.get("/session/:sessionId/summary", async (req, res) => {
 
     const projectNames: Record<string, string> = {
       "docflow-ai": "DocFlow AI",
-      "gestao-patrimonial": "Gestão Patrimonial",
+      "patrimoniario": "Gestão Patrimonial",
       println: "PrintLn",
       portfolio: "Portfólio",
     };
