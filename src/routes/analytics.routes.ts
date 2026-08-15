@@ -287,10 +287,22 @@ router.get("/session/:sessionId/summary", async (req, res) => {
     }
 
     const sections = [...viewedSections];
-
+    
     // --------------------------------------------------
     // Interações
     // --------------------------------------------------
+
+    const interactionNames: Record<string, string> = {
+      project_view: "Visualizou um projeto",
+      github_click: "Clicou no GitHub do projeto",
+      github_profile_click: "Acessou seu perfil no GitHub",
+      demo_click: "Abriu a demonstração de um projeto",
+      contact_click: "Interagiu com a área de contato",
+      resume_download: "Baixou seu currículo",
+      whatsapp_click: "Clicou no WhatsApp",
+      email_click: "Clicou no e-mail",
+      linkedin_click: "Acessou seu LinkedIn",
+    };
 
     const interactions = session.events
       .filter(
@@ -298,20 +310,19 @@ router.get("/session/:sessionId/summary", async (req, res) => {
           event.type !== "page_view" &&
           event.type !== "section_view",
       )
-      .map((event) => {
-        if (event.projectSlug) {
-          return {
-            type: event.type,
-            projectSlug: event.projectSlug,
-          };
-        }
+      .map((event) => ({
+        type: event.type,
 
-        return {
-          type: event.type,
-          metadata: event.metadata,
-        };
-      });
+        label:
+          interactionNames[event.type] ||
+          event.type,
 
+        projectSlug:
+          event.projectSlug || null,
+
+        metadata:
+          event.metadata || null,
+      }));
 
     // --------------------------------------------------
     // Duração
