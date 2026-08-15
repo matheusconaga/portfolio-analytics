@@ -24,6 +24,7 @@ interface AnalyticsComparison {
   linkedinClicks: number;
   whatsappClicks: number;
   emailClicks: number;
+  resumeDownloads: number;
 
   visitorsPercentage: number | null;
   sessionsPercentage: number | null;
@@ -35,6 +36,7 @@ interface AnalyticsComparison {
   linkedinClicksPercentage: number | null;
   whatsappClicksPercentage: number | null;
   emailClicksPercentage: number | null;
+  resumeDownloadsPercentage: number | null;
 }
 
 function calculatePercentage(
@@ -170,6 +172,7 @@ router.get(
         linkedinClicks,
         whatsappClicks,
         emailClicks,
+        resumeDownloads,
       ] = await Promise.all([
         prisma.visitor.count({
           where: periodStart
@@ -241,6 +244,14 @@ router.get(
             type: "email_click",
           },
         }),
+
+        prisma.event.count({
+          where: {
+            ...eventWhere,
+            type: "resume_download",
+          },
+        }),
+
       ]);
 
       /* =====================================================
@@ -276,6 +287,7 @@ router.get(
           previousLinkedinClicks,
           previousWhatsappClicks,
           previousEmailClicks,
+          previousResumeDownloads,
         ] = await Promise.all([
           prisma.visitor.count({
             where: {
@@ -346,6 +358,13 @@ router.get(
               type: "email_click",
             },
           }),
+
+          prisma.event.count({
+            where: {
+              ...previousEventWhere,
+              type: "resume_download",
+            },
+          }),
         ]);
 
         comparison = {
@@ -375,6 +394,9 @@ router.get(
 
           emailClicks:
             previousEmailClicks,
+
+          resumeDownloads:
+            previousResumeDownloads,
 
           visitorsPercentage:
             calculatePercentage(
@@ -429,6 +451,12 @@ router.get(
               emailClicks,
               previousEmailClicks,
             ),
+
+            resumeDownloadsPercentage:
+              calculatePercentage(
+                resumeDownloads,
+                previousResumeDownloads,
+              ),
         };
       }
 
@@ -451,6 +479,7 @@ router.get(
         linkedinClicks,
         whatsappClicks,
         emailClicks,
+        resumeDownloads,
 
         comparison,
       });
