@@ -28,18 +28,28 @@ app.use(cookieParser());
 const allowedOrigins = [
   "http://localhost:5173",
   process.env.FRONTEND_URL,
+  process.env.PUBLIC_ANALYTICS_URL,
 ].filter(Boolean);
 
 app.use(
   cors({
     origin(origin, callback) {
+
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
       if (
-        !origin ||
         allowedOrigins.includes(origin)
       ) {
         callback(null, true);
         return;
       }
+
+      console.warn(
+        `Blocked by CORS: ${origin}`,
+      );
 
       callback(
         new Error(
@@ -69,15 +79,35 @@ app.use("/api/analytics", analyticsDevicesRoutes);
 app.use("/api/analytics", analyticsHoursRoutes);
 app.use("/api/analytics", analyticsActivityRoutes);
 app.use("/api/analytics", analyticsEngagementRoutes);
-app.use("/api/public/analytics", publicAnalyticsRoutes);
 
-app.get("/api/health", async (_req, res) => {
-  res.json({
-    status: "ok",
-    service: "portfolio-analytics-api",
-    database: "connected",
-  });
-});
+/* =====================================================
+   PUBLIC ANALYTICS ROUTES
+===================================================== */
+
+app.use(
+  "/api/public/analytics",
+  publicAnalyticsRoutes,
+);
+
+/* =====================================================
+   HEALTH
+===================================================== */
+
+app.get(
+  "/api/health",
+  async (_req, res) => {
+    res.json({
+      status: "ok",
+      service:
+        "portfolio-analytics-api",
+      database: "connected",
+    });
+  },
+);
+
+/* =====================================================
+   SERVER
+===================================================== */
 
 app.listen(PORT, () => {
   console.log(
