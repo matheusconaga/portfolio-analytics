@@ -4,6 +4,10 @@ export type AnalyticsPeriod =
   | "30d"
   | "all";
 
+/* =====================================================
+   TYPES
+===================================================== */
+
 export interface PublicStats {
   period: string;
 
@@ -51,9 +55,18 @@ export interface PublicProjectsResponse {
   projects: PublicProject[];
 }
 
+/* =====================================================
+   ENVIRONMENT
+===================================================== */
+
 export const API_URL = (
   import.meta.env.VITE_API_URL ||
   "http://localhost:3000"
+).replace(/\/$/, "");
+
+const N8N_WARMUP_URL = (
+  import.meta.env.VITE_N8N_WARMUP_URL ||
+  ""
 ).replace(/\/$/, "");
 
 /* =====================================================
@@ -91,10 +104,57 @@ async function fetchWithTimeout(
 }
 
 /* =====================================================
-   API HEALTH / COLD START
+   N8N WARMUP
 ===================================================== */
 
-export async function waitForApi() {
+async function wakeN8n() {
+  if (!N8N_WARMUP_URL) {
+    console.warn(
+      "VITE_N8N_WARMUP_URL não configurada.",
+    );
+
+    return;
+  }
+
+  try {
+    /*
+     * Não esperamos o conteúdo da resposta.
+     *
+     * O objetivo dessa requisição é apenas
+     * fazer o Render começar a inicializar
+     * o Web Service do n8n.
+     */
+    await fetch(N8N_WARMUP_URL, {
+      method: "POST",
+
+      /*
+       * Como não precisamos ler a resposta
+       * do n8n, evitamos depender do CORS
+       * dele.
+       */
+      mode: "no-cors",
+    });
+
+    console.log(
+      "Warmup do n8n enviado.",
+    );
+  } catch (error) {
+    /*
+     * Uma falha no n8n NÃO deve impedir
+     * que o dashboard carregue.
+     */
+    console.warn(
+      "Não foi possível iniciar o n8n:",
+      error,
+    );
+  }
+}
+
+/* =====================================================
+   BACKEND HEALTH
+===================================================== */
+
+async function waitForBackend() {
   const maxAttempts = 15;
 
   for (
@@ -120,11 +180,15 @@ export async function waitForApi() {
           "application/json",
         )
       ) {
+        console.log(
+          "Analytics API disponível.",
+        );
+
         return;
       }
     } catch (error) {
       console.log(
-        `API ainda não disponível. Tentativa ${attempt}/${maxAttempts}.`,
+        `Backend inicializando: ${attempt}/${maxAttempts}`,
       );
     }
 
@@ -136,6 +200,27 @@ export async function waitForApi() {
   throw new Error(
     "API_UNAVAILABLE",
   );
+}
+
+/* =====================================================
+   INITIALIZE SERVICES
+===================================================== */
+
+export async function initializeServices() {
+  /*
+   * Iniciamos o n8n imediatamente.
+   *
+   * Não usamos await aqui porque o dashboard
+   * não precisa esperar o n8n terminar de
+   * inicializar.
+   */
+  void wakeN8n();
+
+  /*
+   * O backend, por outro lado, é necessário
+   * para carregar os dados.
+   */
+  await waitForBackend();
 }
 
 /* =====================================================

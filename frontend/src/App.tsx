@@ -21,7 +21,7 @@ import {
   getPublicProjects,
   getPublicStats,
   getPublicTimeline,
-  waitForApi,
+  initializeServices,
   type PublicProjectsResponse,
   type PublicStats,
   type PublicTimelineResponse,
@@ -223,42 +223,16 @@ function DashboardLoading({
         </p>
 
         <div className="mt-5 flex items-center gap-1.5">
-          <span
-            className="
-              h-1.5
-              w-1.5
-              animate-bounce
-              rounded-full
-              bg-[#37CBFB]
-            "
-          />
+          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#37CBFB]" />
 
-          <span
-            className="
-              h-1.5
-              w-1.5
-              animate-bounce
-              rounded-full
-              bg-[#37CBFB]
-              [animation-delay:150ms]
-            "
-          />
+          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#37CBFB] [animation-delay:150ms]" />
 
-          <span
-            className="
-              h-1.5
-              w-1.5
-              animate-bounce
-              rounded-full
-              bg-[#37CBFB]
-              [animation-delay:300ms]
-            "
-          />
+          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#37CBFB] [animation-delay:300ms]" />
         </div>
 
         <p className="mt-5 max-w-xs text-xs leading-5 text-zinc-600">
-          O servidor pode estar sendo
-          inicializado após um período sem
+          Os serviços podem estar sendo
+          inicializados após um período sem
           acessos.
         </p>
       </div>
@@ -296,7 +270,7 @@ function App() {
     loadingMessage,
     setLoadingMessage,
   ] = useState(
-    "Conectando ao Analytics...",
+    "Conectando aos serviços...",
   );
 
   /* =====================================================
@@ -310,11 +284,20 @@ function App() {
         setError("");
 
         setLoadingMessage(
-          "Inicializando o servidor...",
+          "Inicializando serviços...",
         );
 
-        await waitForApi();
+        /*
+         * Aqui Backend e n8n começam
+         * a inicializar em paralelo.
+         */
+        await initializeServices();
 
+        /*
+         * Não precisamos esperar o n8n.
+         * Assim que o backend estiver pronto,
+         * buscamos os dados.
+         */
         setLoadingMessage(
           "Carregando dados reais...",
         );
@@ -483,9 +466,7 @@ function App() {
 
                 GitHub
 
-                <ExternalLink
-                  size={14}
-                />
+                <ExternalLink size={14} />
               </a>
 
               <a
@@ -512,9 +493,7 @@ function App() {
               >
                 Meu portfólio
 
-                <ExternalLink
-                  size={14}
-                />
+                <ExternalLink size={14} />
               </a>
             </div>
           </div>
@@ -559,8 +538,7 @@ function App() {
 
               <div className="min-w-0">
                 <p className="text-sm font-medium text-zinc-200">
-                  Analytics em
-                  funcionamento
+                  Analytics em funcionamento
                 </p>
 
                 <p className="mt-1 text-xs leading-5 text-zinc-500 sm:text-sm sm:leading-6">
@@ -582,9 +560,7 @@ function App() {
 
         {loading && (
           <DashboardLoading
-            message={
-              loadingMessage
-            }
+            message={loadingMessage}
           />
         )}
 
@@ -636,9 +612,7 @@ function App() {
 
               <button
                 type="button"
-                onClick={
-                  loadDashboard
-                }
+                onClick={loadDashboard}
                 className="
                   mt-5
                   inline-flex
@@ -658,9 +632,7 @@ function App() {
                   hover:bg-zinc-200
                 "
               >
-                <RefreshCw
-                  size={15}
-                />
+                <RefreshCw size={15} />
 
                 Tentar novamente
               </button>
@@ -676,9 +648,7 @@ function App() {
           !error &&
           stats && (
             <>
-              {/* =============================================
-                  OVERVIEW
-              ============================================= */}
+              {/* OVERVIEW */}
 
               <section className="mt-7 sm:mt-8">
                 <SectionHeader
@@ -705,9 +675,7 @@ function App() {
                     }
                     description="Visitantes únicos"
                     icon={
-                      <Users
-                        size={18}
-                      />
+                      <Users size={18} />
                     }
                   />
 
@@ -753,9 +721,7 @@ function App() {
                 </div>
               </section>
 
-              {/* =============================================
-                  TIMELINE
-              ============================================= */}
+              {/* TIMELINE */}
 
               {timeline && (
                 <section className="mt-8 sm:mt-10 lg:mt-12">
@@ -765,16 +731,12 @@ function App() {
                   />
 
                   <TimelineChart
-                    data={
-                      timeline.data
-                    }
+                    data={timeline.data}
                   />
                 </section>
               )}
 
-              {/* =============================================
-                  PROJECTS
-              ============================================= */}
+              {/* PROJECTS */}
 
               {projects && (
                 <section className="mt-8 sm:mt-10 lg:mt-12">
@@ -791,9 +753,7 @@ function App() {
                 </section>
               )}
 
-              {/* =============================================
-                  INTERACTIONS
-              ============================================= */}
+              {/* INTERACTIONS */}
 
               <section className="mt-8 sm:mt-10 lg:mt-12">
                 <SectionHeader
@@ -913,9 +873,7 @@ function App() {
                         sm:text-xs
                       "
                     >
-                      {
-                        technology
-                      }
+                      {technology}
                     </span>
                   ),
                 )}
@@ -949,13 +907,12 @@ function App() {
               "
             >
               <span>
-                Portfolio Analytics ·
-                Dados anonimizados
+                Portfolio Analytics · Dados
+                anonimizados
               </span>
 
               <span>
-                React + Node.js +
-                PostgreSQL
+                React + Node.js + PostgreSQL
               </span>
             </footer>
           )}
