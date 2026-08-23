@@ -14,6 +14,7 @@ import analyticsDevicesRoutes from "./routes/analytics-devices.js";
 import analyticsHoursRoutes from "./routes/analytics-hours.js";
 import analyticsActivityRoutes from "./routes/analytics-activity.js";
 import analyticsEngagementRoutes from "./routes/analytics-engagement.js";
+import publicAnalyticsRoutes from "./routes/public-analytics.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 
 const app = express();
@@ -68,6 +69,7 @@ app.use("/api/analytics", analyticsDevicesRoutes);
 app.use("/api/analytics", analyticsHoursRoutes);
 app.use("/api/analytics", analyticsActivityRoutes);
 app.use("/api/analytics", analyticsEngagementRoutes);
+app.use("/api/public/analytics", publicAnalyticsRoutes);
 
 app.get("/api/health", async (_req, res) => {
   res.json({
