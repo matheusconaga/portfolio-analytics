@@ -17,6 +17,9 @@ import analyticsEngagementRoutes from "./routes/analytics-engagement.js";
 import publicAnalyticsRoutes from "./routes/public-analytics.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import { monitoringRouter } from "./monitoring/monitoring.routes.js";
+import {
+  requireAuth,
+} from "./middlewares/auth.middleware.js";
 
 const app = express();
 
@@ -71,6 +74,7 @@ app.use("/api/auth", authRoutes);
 // ADMIN ROUTES
 app.use(
   "/api/admin",
+  requireAuth,
   monitoringRouter,
 );
 
