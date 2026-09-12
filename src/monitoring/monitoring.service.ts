@@ -1,6 +1,8 @@
 import os from "node:os";
-import { statfs } from "node:fs/promises";
-import { execFile } from "node:child_process";
+import {
+    readFile,
+    statfs,
+} from "node:fs/promises"; import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import {
     prisma,
@@ -109,34 +111,180 @@ function getCpuTimes(): CpuTimes {
     };
 }
 
-async function getCpuUsage(): Promise<number> {
-    const start = getCpuTimes();
+async function getAndroidCpuCoreCount(): Promise<number> {
+    try {
+        const value =
+            await readFile(
+                "/sys/devices/system/cpu/online",
+                "utf8",
+            );
 
-    await new Promise<void>((resolve) => {
-        setTimeout(resolve, 250);
-    });
+        const ranges =
+            value.trim().split(",");
 
-    const end = getCpuTimes();
+        let cores = 0;
 
-    const idleDifference =
-        end.idle - start.idle;
+        for (const range of ranges) {
+            const [
+                start,
+                end,
+            ] = range
+                .split("-")
+                .map(Number);
 
-    const totalDifference =
-        end.total - start.total;
+            if (
+                Number.isFinite(start) &&
+                Number.isFinite(end)
+            ) {
+                cores +=
+                    end - start + 1;
+            } else if (
+                Number.isFinite(start)
+            ) {
+                cores += 1;
+            }
+        }
 
-    if (totalDifference <= 0) {
+        return cores;
+    } catch {
         return 0;
     }
+}
+
+async function getCpuUsageFromTop(
+    cores: number,
+): Promise<number> {
+    try {
+        const {
+            stdout,
+        } = await execFileAsync(
+            "top",
+            [
+                "-b",
+                "-n",
+                "1",
+            ],
+        );
+
+        const cpuLine =
+            stdout
+                .split("\n")
+                .find((line) =>
+                    line.includes("%cpu"),
+                );
+
+        if (!cpuLine) {
+            return 0;
+        }
+
+        const idleMatch =
+            cpuLine.match(
+                /([\d.]+)%idle/,
+            );
+
+        if (!idleMatch) {
+            return 0;
+        }
+
+        const idle =
+            Number(idleMatch[1]);
+
+        if (
+            !Number.isFinite(idle) ||
+            cores <= 0
+        ) {
+            return 0;
+        }
+
+        const totalCapacity =
+            cores * 100;
+
+        const usage =
+            ((totalCapacity - idle) /
+                totalCapacity) *
+            100;
+
+        return Number(
+            Math.max(
+                0,
+                Math.min(
+                    100,
+                    usage,
+                ),
+            ).toFixed(1),
+        );
+    } catch {
+        return 0;
+    }
+}
+
+async function getCpuUsage(): Promise<{
+    usage: number;
+    cores: number;
+}> {
+    const nodeCpus =
+        os.cpus();
+
+    /*
+     * Windows / Linux convencional.
+     */
+    if (nodeCpus.length > 0) {
+        const start =
+            getCpuTimes();
+
+        await new Promise<void>(
+            (resolve) => {
+                setTimeout(
+                    resolve,
+                    250,
+                );
+            },
+        );
+
+        const end =
+            getCpuTimes();
+
+        const idleDifference =
+            end.idle -
+            start.idle;
+
+        const totalDifference =
+            end.total -
+            start.total;
+
+        const usage =
+            totalDifference > 0
+                ? 100 -
+                (idleDifference /
+                    totalDifference) *
+                100
+                : 0;
+
+        return {
+            usage: Number(
+                usage.toFixed(1),
+            ),
+
+            cores:
+                nodeCpus.length,
+        };
+    }
+
+    /*
+     * Android / Termux.
+     */
+    const cores =
+        await getAndroidCpuCoreCount();
 
     const usage =
-        100 -
-        (idleDifference /
-            totalDifference) *
-        100;
+        await getCpuUsageFromTop(
+            cores,
+        );
 
-    return Number(
-        usage.toFixed(1),
-    );
+    return {
+        usage,
+        cores,
+    };
 }
 
 function getMemoryMetrics() {
@@ -339,33 +487,30 @@ export async function getServicesStatus() {
 }
 
 export async function getSystemMetrics(): Promise<SystemMetrics> {
-    const [
-        cpuUsage,
-        disk,
-        battery,
-    ] = await Promise.all([
-        getCpuUsage(),
-        getDiskMetrics(),
-        getBatteryMetrics(),
-    ]);
+  const [
+    cpu,
+    disk,
+    battery,
+  ] = await Promise.all([
+    getCpuUsage(),
+    getDiskMetrics(),
+    getBatteryMetrics(),
+  ]);
 
-    const memory =
-        getMemoryMetrics();
+  const memory =
+    getMemoryMetrics();
 
-    return {
-        cpu: {
-            usage: cpuUsage,
-            cores: os.cpus().length,
-        },
+  return {
+    cpu,
 
-        memory,
+    memory,
 
-        disk,
+    disk,
 
-        battery,
+    battery,
 
-        uptime: Math.floor(
-            os.uptime(),
-        ),
-    };
+    uptime: Math.floor(
+      os.uptime(),
+    ),
+  };
 }
