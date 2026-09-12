@@ -163,46 +163,58 @@ async function getCpuUsageFromTop(
                 "-b",
                 "-n",
                 "1",
+                "-o",
+                "%CPU",
             ],
         );
 
-        const cpuLine =
-            stdout
-                .split("\n")
-                .find((line) =>
-                    line.includes("%cpu"),
-                );
+        const lines =
+            stdout.split("\n");
 
-        if (!cpuLine) {
+        let totalProcessCpu = 0;
+
+        for (const line of lines) {
+            const value =
+                line.trim();
+
+            /*
+             * Com -o %CPU, as linhas dos
+             * processos contêm somente números.
+             */
+            if (
+                !/^\d+(\.\d+)?$/.test(
+                    value,
+                )
+            ) {
+                continue;
+            }
+
+            const cpu =
+                Number(value);
+
+            if (
+                Number.isFinite(cpu)
+            ) {
+                totalProcessCpu +=
+                    cpu;
+            }
+        }
+
+        if (cores <= 0) {
             return 0;
         }
 
-        const idleMatch =
-            cpuLine.match(
-                /([\d.]+)%idle/,
-            );
-
-        if (!idleMatch) {
-            return 0;
-        }
-
-        const idle =
-            Number(idleMatch[1]);
-
-        if (
-            !Number.isFinite(idle) ||
-            cores <= 0
-        ) {
-            return 0;
-        }
-
-        const totalCapacity =
-            cores * 100;
-
+        /*
+         * O top pode mostrar até 100%
+         * por núcleo.
+         *
+         * Ex:
+         * 100% em um processo com
+         * 8 núcleos = ~12.5% total.
+         */
         const usage =
-            ((totalCapacity - idle) /
-                totalCapacity) *
-            100;
+            totalProcessCpu /
+            cores;
 
         return Number(
             Math.max(
@@ -487,30 +499,30 @@ export async function getServicesStatus() {
 }
 
 export async function getSystemMetrics(): Promise<SystemMetrics> {
-  const [
-    cpu,
-    disk,
-    battery,
-  ] = await Promise.all([
-    getCpuUsage(),
-    getDiskMetrics(),
-    getBatteryMetrics(),
-  ]);
+    const [
+        cpu,
+        disk,
+        battery,
+    ] = await Promise.all([
+        getCpuUsage(),
+        getDiskMetrics(),
+        getBatteryMetrics(),
+    ]);
 
-  const memory =
-    getMemoryMetrics();
+    const memory =
+        getMemoryMetrics();
 
-  return {
-    cpu,
+    return {
+        cpu,
 
-    memory,
+        memory,
 
-    disk,
+        disk,
 
-    battery,
+        battery,
 
-    uptime: Math.floor(
-      os.uptime(),
-    ),
-  };
+        uptime: Math.floor(
+            os.uptime(),
+        ),
+    };
 }
