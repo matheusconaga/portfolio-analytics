@@ -16,6 +16,7 @@ import analyticsActivityRoutes from "./routes/analytics-activity.js";
 import analyticsEngagementRoutes from "./routes/analytics-engagement.js";
 import publicAnalyticsRoutes from "./routes/public-analytics.routes.js";
 import authRoutes from "./routes/auth.routes.js";
+import { monitoringRouter } from "./monitoring/monitoring.routes.js";
 
 const app = express();
 
@@ -67,6 +68,12 @@ app.use(
 // AUTH ROUTES
 app.use("/api/auth", authRoutes);
 
+// ADMIN ROUTES
+app.use(
+  "/api/admin",
+  monitoringRouter,
+);
+
 // ANALYTICS ROUTES
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/analytics", analyticsStatsRoutes);
@@ -104,6 +111,9 @@ app.get(
     });
   },
 );
+
+
+
 
 /* =====================================================
    SERVER
