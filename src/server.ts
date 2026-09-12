@@ -36,6 +36,7 @@ const allowedOrigins = [
   "http://localhost:5173",
   process.env.FRONTEND_URL,
   process.env.PUBLIC_ANALYTICS_URL,
+  process.env.SERVER_FRONTEND_URL,
 ].filter(Boolean);
 
 app.use(
