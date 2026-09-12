@@ -37,12 +37,12 @@ const allowedOrigins = [
   process.env.FRONTEND_URL,
   process.env.PUBLIC_ANALYTICS_URL,
   process.env.SERVER_FRONTEND_URL,
+  process.env.ANALYTICS_FRONTEND_URL,
 ].filter(Boolean);
 
 app.use(
   cors({
     origin(origin, callback) {
-
       if (!origin) {
         callback(null, true);
         return;
