@@ -20,6 +20,9 @@ import { monitoringRouter } from "./monitoring/monitoring.routes.js";
 import {
   requireAuth,
 } from "./middlewares/auth.middleware.js";
+import {
+  createProxyMiddleware,
+} from "http-proxy-middleware";
 
 const app = express();
 
@@ -116,8 +119,17 @@ app.get(
   },
 );
 
+app.use(
+  createProxyMiddleware({
+    target:
+      "https://portifoliomatheuslula.onrender.com",
 
+    changeOrigin: true,
 
+    pathFilter: (pathname) =>
+      !pathname.startsWith("/api"),
+  }),
+);
 
 /* =====================================================
    SERVER
