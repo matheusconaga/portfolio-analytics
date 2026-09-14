@@ -6,6 +6,7 @@ import {
   ExternalLink,
   FileDown,
   GitFork,
+  Languages,
   Mail,
   MessageCircle,
   MonitorPlay,
@@ -35,6 +36,9 @@ import {
 
 import TimelineChart from "./components/TimelineChart";
 import ProjectsTable from "./components/ProjectsTable";
+import ProjectFooter from "./components/footer";
+
+import { useAppTranslation } from "./shared/hooks/useAppTranslation";
 
 /* =====================================================
    METRIC CARD
@@ -45,6 +49,7 @@ interface MetricCardProps {
   value: number | string;
   description: string;
   icon: ReactNode;
+  locale: "pt" | "en";
 }
 
 function MetricCard({
@@ -52,7 +57,13 @@ function MetricCard({
   value,
   description,
   icon,
+  locale,
 }: MetricCardProps) {
+  const numberLocale =
+    locale === "pt"
+      ? "pt-BR"
+      : "en-US";
+
   return (
     <article
       className="
@@ -91,7 +102,9 @@ function MetricCard({
             "
           >
             {typeof value === "number"
-              ? value.toLocaleString("pt-BR")
+              ? value.toLocaleString(
+                  numberLocale,
+                )
               : value}
           </p>
         </div>
@@ -202,38 +215,32 @@ function DashboardLoading() {
 ===================================================== */
 
 function App() {
-  const [
-    stats,
-    setStats,
-  ] = useState<PublicStats | null>(
-    null,
-  );
+  const {
+    t,
+    language,
+    changeLanguage,
+  } = useAppTranslation();
 
-  const [
-    timeline,
-    setTimeline,
-  ] =
+  const [stats, setStats] =
+    useState<PublicStats | null>(
+      null,
+    );
+
+  const [timeline, setTimeline] =
     useState<PublicTimelineResponse | null>(
       null,
     );
 
-  const [
-    projects,
-    setProjects,
-  ] =
+  const [projects, setProjects] =
     useState<PublicProjectsResponse | null>(
       null,
     );
 
-  const [
-    loading,
-    setLoading,
-  ] = useState(true);
+  const [loading, setLoading] =
+    useState(true);
 
-  const [
-    error,
-    setError,
-  ] = useState("");
+  const [error, setError] =
+    useState(false);
 
   /* =====================================================
      LOAD
@@ -243,7 +250,7 @@ function App() {
     useCallback(async () => {
       try {
         setLoading(true);
-        setError("");
+        setError(false);
 
         const [
           statsData,
@@ -256,14 +263,16 @@ function App() {
         ]);
 
         setStats(statsData);
-        setTimeline(timelineData);
-        setProjects(projectsData);
+        setTimeline(
+          timelineData,
+        );
+        setProjects(
+          projectsData,
+        );
       } catch (error) {
         console.error(error);
 
-        setError(
-          "Não foi possível carregar os dados públicos do Analytics.",
-        );
+        setError(true);
       } finally {
         setLoading(false);
       }
@@ -308,36 +317,33 @@ function App() {
 
       const sessionsPerVisitor =
         visitors > 0
-          ? sessions / visitors
+          ? sessions /
+            visitors
           : 0;
 
       const demoInterest =
         visitors > 0
-          ? (
-              (stats.interactions
-                .demoClicks /
-                visitors) *
-              100
-            )
+          ? (stats
+              .interactions
+              .demoClicks /
+              visitors) *
+            100
           : 0;
 
       const contactRate =
         visitors > 0
-          ? (
-              (directContacts /
-                visitors) *
-              100
-            )
+          ? (directContacts /
+              visitors) *
+            100
           : 0;
 
       const resumeRate =
         visitors > 0
-          ? (
-              (stats.interactions
-                .resumeDownloads /
-                visitors) *
-              100
-            )
+          ? (stats
+              .interactions
+              .resumeDownloads /
+              visitors) *
+            100
           : 0;
 
       return {
@@ -352,42 +358,54 @@ function App() {
     stats
       ? [
           {
-            label: "Demos",
+            label: t(
+              "interactions.demo",
+            ),
             value:
               stats.interactions
                 .demoClicks,
             icon: MonitorPlay,
           },
           {
-            label: "Currículo",
+            label: t(
+              "interactions.resume",
+            ),
             value:
               stats.interactions
                 .resumeDownloads,
             icon: FileDown,
           },
           {
-            label: "WhatsApp",
+            label: t(
+              "interactions.whatsapp",
+            ),
             value:
               stats.interactions
                 .whatsappClicks,
             icon: MessageCircle,
           },
           {
-            label: "Email",
+            label: t(
+              "interactions.email",
+            ),
             value:
               stats.interactions
                 .emailClicks,
             icon: Mail,
           },
           {
-            label: "GitHub",
+            label: t(
+              "interactions.github",
+            ),
             value:
               stats.interactions
                 .githubClicks,
             icon: GitFork,
           },
           {
-            label: "LinkedIn",
+            label: t(
+              "interactions.linkedin",
+            ),
             value:
               stats.interactions
                 .linkedinClicks,
@@ -399,10 +417,45 @@ function App() {
   const maxInteraction =
     Math.max(
       ...interactionItems.map(
-        (item) => item.value,
+        (item) =>
+          item.value,
       ),
       1,
     );
+
+  const architectureItems = [
+    {
+      icon: Code2,
+      title: t(
+        "architecture.frontend",
+      ),
+      value:
+        "React + TypeScript",
+    },
+    {
+      icon: Server,
+      title: t(
+        "architecture.api",
+      ),
+      value:
+        "Node.js + Express",
+    },
+    {
+      icon: Database,
+      title: t(
+        "architecture.persistence",
+      ),
+      value:
+        "Prisma + PostgreSQL",
+    },
+    {
+      icon: Workflow,
+      title: t(
+        "architecture.automation",
+      ),
+      value: "n8n",
+    },
+  ];
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-zinc-950 text-white">
@@ -429,6 +482,111 @@ function App() {
         ================================================= */}
 
         <header className="border-b border-white/10 pb-8 lg:pb-10">
+          {/* LANGUAGE */}
+          <div
+            className="
+              mb-5
+              flex
+              justify-end
+            "
+          >
+            <div
+              className="
+                inline-flex
+                items-center
+                gap-1
+
+                rounded-lg
+
+                border
+                border-white/10
+
+                bg-white/[0.025]
+
+                p-1
+              "
+            >
+              <div
+                className="
+                  flex
+                  h-7
+                  w-7
+
+                  items-center
+                  justify-center
+
+                  text-zinc-500
+                "
+              >
+                <Languages
+                  size={15}
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  void changeLanguage(
+                    "pt",
+                  );
+                }}
+                className={`
+                  min-w-10
+
+                  rounded-md
+
+                  px-2.5
+                  py-1.5
+
+                  text-[11px]
+                  font-semibold
+
+                  transition-colors
+
+                  ${
+                    language ===
+                    "pt"
+                      ? "bg-white text-black"
+                      : "text-zinc-500 hover:bg-white/5 hover:text-white"
+                  }
+                `}
+              >
+                PT
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  void changeLanguage(
+                    "en",
+                  );
+                }}
+                className={`
+                  min-w-10
+
+                  rounded-md
+
+                  px-2.5
+                  py-1.5
+
+                  text-[11px]
+                  font-semibold
+
+                  transition-colors
+
+                  ${
+                    language ===
+                    "en"
+                      ? "bg-white text-black"
+                      : "text-zinc-500 hover:bg-white/5 hover:text-white"
+                  }
+                `}
+              >
+                EN
+              </button>
+            </div>
+          </div>
+
           <div
             className="
               flex
@@ -474,7 +632,9 @@ function App() {
                 >
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
 
-                  Live API
+                  {t(
+                    "header.liveApi",
+                  )}
                 </span>
 
                 <span
@@ -490,7 +650,9 @@ function App() {
                     text-zinc-500
                   "
                 >
-                  Janela móvel · 7 dias
+                  {t(
+                    "header.period",
+                  )}
                 </span>
 
                 <span
@@ -506,7 +668,9 @@ function App() {
                     text-zinc-500
                   "
                 >
-                  Dados anonimizados
+                  {t(
+                    "header.anonymous",
+                  )}
                 </span>
               </div>
 
@@ -522,7 +686,9 @@ function App() {
                   md:text-5xl
                 "
               >
-                Portfolio Analytics
+                {t(
+                  "header.title",
+                )}
               </h1>
 
               <p
@@ -538,11 +704,9 @@ function App() {
                   sm:leading-7
                 "
               >
-                Plataforma first-party
-                desenvolvida para coletar,
-                processar e visualizar
-                comportamento e conversões
-                reais do meu portfólio.
+                {t(
+                  "header.description",
+                )}
               </p>
             </div>
 
@@ -585,9 +749,13 @@ function App() {
                   hover:text-white
                 "
               >
-                <Code2 size={16} />
+                <Code2
+                  size={16}
+                />
 
-                Código
+                {t(
+                  "header.code",
+                )}
 
                 <ExternalLink
                   size={13}
@@ -621,7 +789,9 @@ function App() {
                   hover:bg-zinc-200
                 "
               >
-                Ver portfólio
+                {t(
+                  "header.portfolio",
+                )}
 
                 <ExternalLink
                   size={13}
@@ -652,31 +822,43 @@ function App() {
           >
             <div className="border-b border-white/10 p-4 sm:border-b-0 sm:border-r sm:p-5">
               <p className="text-[11px] uppercase tracking-wider text-zinc-600">
-                Origem
+                {t(
+                  "context.source.title",
+                )}
               </p>
 
               <p className="mt-1.5 text-sm text-zinc-300">
-                First-party analytics
+                {t(
+                  "context.source.value",
+                )}
               </p>
             </div>
 
             <div className="border-b border-white/10 p-4 sm:border-b-0 sm:border-r sm:p-5">
               <p className="text-[11px] uppercase tracking-wider text-zinc-600">
-                Atualização
+                {t(
+                  "context.update.title",
+                )}
               </p>
 
               <p className="mt-1.5 text-sm text-zinc-300">
-                API pública · 60 segundos
+                {t(
+                  "context.update.value",
+                )}
               </p>
             </div>
 
             <div className="p-4 sm:p-5">
               <p className="text-[11px] uppercase tracking-wider text-zinc-600">
-                Período
+                {t(
+                  "context.period.title",
+                )}
               </p>
 
               <p className="mt-1.5 text-sm text-zinc-300">
-                Últimos 7 dias
+                {t(
+                  "context.period.value",
+                )}
               </p>
             </div>
           </div>
@@ -724,18 +906,22 @@ function App() {
                 />
 
                 <h2 className="mt-4 font-medium text-white">
-                  Analytics indisponível
+                  {t(
+                    "error.title",
+                  )}
                 </h2>
 
                 <p className="mt-2 text-sm leading-6 text-zinc-500">
-                  {error}
+                  {t(
+                    "error.description",
+                  )}
                 </p>
 
                 <button
                   type="button"
-                  onClick={
-                    loadDashboard
-                  }
+                  onClick={() => {
+                    void loadDashboard();
+                  }}
                   className="
                     mt-5
 
@@ -767,7 +953,9 @@ function App() {
                     size={15}
                   />
 
-                  Tentar novamente
+                  {t(
+                    "error.retry",
+                  )}
                 </button>
               </div>
             </section>
@@ -785,8 +973,12 @@ function App() {
 
               <section className="mt-8">
                 <SectionHeader
-                  title="Visão geral"
-                  description="Indicadores principais registrados no período atual."
+                  title={t(
+                    "overview.title",
+                  )}
+                  description={t(
+                    "overview.description",
+                  )}
                 />
 
                 <div
@@ -799,60 +991,86 @@ function App() {
                   "
                 >
                   <MetricCard
-                    title="Visitantes"
+                    title={t(
+                      "overview.visitors.title",
+                    )}
                     value={
                       stats.overview
                         .visitors
                     }
-                    description="Visitantes únicos registrados"
+                    description={t(
+                      "overview.visitors.description",
+                    )}
                     icon={
                       <Users
                         size={17}
                       />
                     }
+                    locale={
+                      language
+                    }
                   />
 
                   <MetricCard
-                    title="Sessões"
+                    title={t(
+                      "overview.sessions.title",
+                    )}
                     value={
                       stats.overview
                         .sessions
                     }
-                    description="Sessões iniciadas no período"
+                    description={t(
+                      "overview.sessions.description",
+                    )}
                     icon={
                       <BarChart3
                         size={17}
                       />
                     }
+                    locale={
+                      language
+                    }
                   />
 
                   <MetricCard
-                    title="Interações"
+                    title={t(
+                      "overview.interactions.title",
+                    )}
                     value={
-                      stats
-                        .interactions
+                      stats.interactions
                         .total
                     }
-                    description="Ações relevantes no portfólio"
+                    description={t(
+                      "overview.interactions.description",
+                    )}
                     icon={
                       <MousePointerClick
                         size={17}
                       />
                     }
+                    locale={
+                      language
+                    }
                   />
 
                   <MetricCard
-                    title="Currículos"
+                    title={t(
+                      "overview.resume.title",
+                    )}
                     value={
-                      stats
-                        .interactions
+                      stats.interactions
                         .resumeDownloads
                     }
-                    description="Downloads do currículo"
+                    description={t(
+                      "overview.resume.description",
+                    )}
                     icon={
                       <FileDown
                         size={17}
                       />
+                    }
+                    locale={
+                      language
                     }
                   />
                 </div>
@@ -863,8 +1081,12 @@ function App() {
               {insights && (
                 <section className="mt-8 sm:mt-10">
                   <SectionHeader
-                    title="Indicadores de engajamento"
-                    description="Métricas calculadas a partir do comportamento registrado."
+                    title={t(
+                      "engagement.title",
+                    )}
+                    description={t(
+                      "engagement.description",
+                    )}
                   />
 
                   <div
@@ -877,56 +1099,82 @@ function App() {
                     "
                   >
                     <MetricCard
-                      title="Sessões / visitante"
-                      value={
-                        insights.sessionsPerVisitor.toFixed(
-                          1,
-                        )
-                      }
-                      description="Recorrência média por visitante"
+                      title={t(
+                        "engagement.sessionsPerVisitor",
+                      )}
+                      value={insights.sessionsPerVisitor.toFixed(
+                        1,
+                      )}
+                      description={t(
+                        "engagement.sessionsPerVisitor.description",
+                      )}
                       icon={
                         <Users
                           size={17}
                         />
                       }
+                      locale={
+                        language
+                      }
                     />
 
                     <MetricCard
-                      title="Interesse em demos"
+                      title={t(
+                        "engagement.demoInterest",
+                      )}
                       value={`${insights.demoInterest.toFixed(
                         1,
                       )}%`}
-                      description="Cliques em demos por visitante"
+                      description={t(
+                        "engagement.demoInterest.description",
+                      )}
                       icon={
                         <MonitorPlay
                           size={17}
                         />
                       }
+                      locale={
+                        language
+                      }
                     />
 
                     <MetricCard
-                      title="Contato direto"
+                      title={t(
+                        "engagement.contactRate",
+                      )}
                       value={`${insights.contactRate.toFixed(
                         1,
                       )}%`}
-                      description="Email ou WhatsApp por visitante"
+                      description={t(
+                        "engagement.contactRate.description",
+                      )}
                       icon={
                         <MessageCircle
                           size={17}
                         />
                       }
+                      locale={
+                        language
+                      }
                     />
 
                     <MetricCard
-                      title="Currículo"
+                      title={t(
+                        "engagement.resumeRate",
+                      )}
                       value={`${insights.resumeRate.toFixed(
                         1,
                       )}%`}
-                      description="Downloads por visitante"
+                      description={t(
+                        "engagement.resumeRate.description",
+                      )}
                       icon={
                         <FileDown
                           size={17}
                         />
+                      }
+                      locale={
+                        language
                       }
                     />
                   </div>
@@ -938,8 +1186,12 @@ function App() {
               {timeline && (
                 <section className="mt-8 sm:mt-10 lg:mt-12">
                   <SectionHeader
-                    title="Tráfego ao longo do tempo"
-                    description="Evolução diária de visitantes, sessões e visualizações."
+                    title={t(
+                      "timeline.section.title",
+                    )}
+                    description={t(
+                      "timeline.section.description",
+                    )}
                   />
 
                   <TimelineChart
@@ -955,8 +1207,12 @@ function App() {
               {projects && (
                 <section className="mt-8 sm:mt-10 lg:mt-12">
                   <SectionHeader
-                    title="Engajamento por projeto"
-                    description="Projetos que receberam visualizações e ações de saída."
+                    title={t(
+                      "projects.section.title",
+                    )}
+                    description={t(
+                      "projects.section.description",
+                    )}
                   />
 
                   <ProjectsTable
@@ -971,8 +1227,12 @@ function App() {
 
               <section className="mt-8 sm:mt-10 lg:mt-12">
                 <SectionHeader
-                  title="Ações dos visitantes"
-                  description="Distribuição dos eventos de maior intenção registrados no portfólio."
+                  title={t(
+                    "interactions.title",
+                  )}
+                  description={t(
+                    "interactions.description",
+                  )}
                 />
 
                 <div
@@ -1057,7 +1317,9 @@ function App() {
                           </div>
 
                           <span className="text-right text-sm font-medium text-white">
-                            {value}
+                            {
+                              value
+                            }
                           </span>
                         </div>
                       );
@@ -1070,8 +1332,12 @@ function App() {
 
               <section className="mt-8 sm:mt-10 lg:mt-12">
                 <SectionHeader
-                  title="Arquitetura"
-                  description="Principais componentes utilizados na construção do Analytics."
+                  title={t(
+                    "architecture.title",
+                  )}
+                  description={t(
+                    "architecture.description",
+                  )}
                 />
 
                 <div
@@ -1092,41 +1358,16 @@ function App() {
                     lg:grid-cols-4
                   "
                 >
-                  {[
-                    {
-                      icon: Code2,
-                      title:
-                        "Frontend",
-                      value:
-                        "React + TypeScript",
-                    },
-                    {
-                      icon: Server,
-                      title: "API",
-                      value:
-                        "Node.js + Express",
-                    },
-                    {
-                      icon: Database,
-                      title:
-                        "Persistência",
-                      value:
-                        "Prisma + PostgreSQL",
-                    },
-                    {
-                      icon: Workflow,
-                      title:
-                        "Automação",
-                      value: "n8n",
-                    },
-                  ].map(
+                  {architectureItems.map(
                     ({
                       icon: Icon,
                       title,
                       value,
                     }) => (
                       <div
-                        key={title}
+                        key={
+                          title
+                        }
                         className="
                           border-b
                           border-white/10
@@ -1146,11 +1387,15 @@ function App() {
                         />
 
                         <p className="mt-4 text-xs text-zinc-500">
-                          {title}
+                          {
+                            title
+                          }
                         </p>
 
                         <p className="mt-1 text-sm font-medium text-zinc-200">
-                          {value}
+                          {
+                            value
+                          }
                         </p>
                       </div>
                     ),
@@ -1158,7 +1403,7 @@ function App() {
                 </div>
               </section>
 
-              {/* FOOTER */}
+              {/* DASHBOARD FOOTER */}
 
               <footer
                 className="
@@ -1182,17 +1427,25 @@ function App() {
                 "
               >
                 <span>
-                  Portfolio Analytics ·
-                  Telemetria first-party
+                  {t(
+                    "footer.telemetry",
+                  )}
                 </span>
 
                 <span>
-                  Dados públicos e anonimizados
+                  {t(
+                    "footer.data",
+                  )}
                 </span>
               </footer>
             </>
           )}
       </div>
+
+      <ProjectFooter
+        projectName="Portfolio Analytics"
+        locale={language}
+      />
     </main>
   );
 }

@@ -13,17 +13,30 @@ import type {
   TimelinePoint,
 } from "../api";
 
+import {
+  useAppTranslation,
+} from "../shared/hooks/useAppTranslation";
+
 interface TimelineChartProps {
   data: TimelinePoint[];
 }
 
-function formatDate(
+function getDateLocale(
+  language: "pt" | "en",
+) {
+  return language === "pt"
+    ? "pt-BR"
+    : "en-US";
+}
+
+function formatShortDate(
   value: string,
+  language: "pt" | "en",
 ) {
   return new Date(
     `${value}T00:00:00`,
   ).toLocaleDateString(
-    "pt-BR",
+    getDateLocale(language),
     {
       day: "2-digit",
       month: "2-digit",
@@ -31,9 +44,30 @@ function formatDate(
   );
 }
 
+function formatFullDate(
+  value: string,
+  language: "pt" | "en",
+) {
+  return new Date(
+    `${value}T00:00:00`,
+  ).toLocaleDateString(
+    getDateLocale(language),
+    {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    },
+  );
+}
+
 export default function TimelineChart({
   data,
 }: TimelineChartProps) {
+  const {
+    t,
+    language,
+  } = useAppTranslation();
+
   if (!data.length) {
     return (
       <div
@@ -55,8 +89,9 @@ export default function TimelineChart({
         "
       >
         <p className="text-center text-sm text-zinc-500">
-          Nenhum dado registrado
-          neste período.
+          {t(
+            "timeline.empty",
+          )}
         </p>
       </div>
     );
@@ -111,8 +146,13 @@ export default function TimelineChart({
 
             <XAxis
               dataKey="date"
-              tickFormatter={
-                formatDate
+              tickFormatter={(
+                value,
+              ) =>
+                formatShortDate(
+                  String(value),
+                  language,
+                )
               }
               tick={{
                 fill: "#71717a",
@@ -140,18 +180,9 @@ export default function TimelineChart({
               labelFormatter={(
                 value,
               ) =>
-                new Date(
-                  `${String(
-                    value,
-                  )}T00:00:00`,
-                ).toLocaleDateString(
-                  "pt-BR",
-                  {
-                    day: "2-digit",
-                    month:
-                      "long",
-                    year: "numeric",
-                  },
+                formatFullDate(
+                  String(value),
+                  language,
                 )
               }
               contentStyle={{
@@ -183,7 +214,9 @@ export default function TimelineChart({
             <Line
               type="monotone"
               dataKey="visitors"
-              name="Visitantes"
+              name={t(
+                "timeline.visitors",
+              )}
               stroke="#37CBFB"
               strokeWidth={2}
               dot={false}
@@ -195,7 +228,9 @@ export default function TimelineChart({
             <Line
               type="monotone"
               dataKey="sessions"
-              name="Sessões"
+              name={t(
+                "timeline.sessions",
+              )}
               stroke="#a1a1aa"
               strokeWidth={2}
               dot={false}
@@ -204,7 +239,9 @@ export default function TimelineChart({
             <Line
               type="monotone"
               dataKey="pageViews"
-              name="Visualizações"
+              name={t(
+                "timeline.pageViews",
+              )}
               stroke="#34d399"
               strokeWidth={2}
               dot={false}
